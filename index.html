@@ -1,148 +1,144 @@
-﻿<!doctype html >
-<html lang="it" >
-<head >
-<meta charset="utf-8" >
-<meta name="viewport" content="width=device-width, initial-scale=1" >
-<title > Presenze QR</title >
-<script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js" > </script >
-<style >
-body {
-    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-    margin: 0;
-    background: #f7f7f7
-}
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scanner QR Code</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 18px; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    #reader { width: 100%; max-width: 520px; border-radius: 12px; overflow: hidden; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+    button {
+      padding: 10px 12px; border: 0; border-radius: 10px; cursor: pointer;
+      background: #111; color: #fff; font-weight: 600;
+    }
+    button.secondary { background: #e9e9e9; color: #111; }
+    .box {
+      max-width: 520px; padding: 12px; border: 1px solid #ddd; border-radius: 12px;
+      background: #fafafa;
+    }
+    .label { font-size: 12px; opacity: .7; margin-bottom: 6px; }
+    #result { font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+    .hint { font-size: 12px; opacity: .75; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>📷 Scanner QR Code (GitHub Pages)</h1>
 
-header {
-    background: #fff;
-    padding: 16px;
-    border-bottom: 1px solid #eee
-}
+  <div id="reader"></div>
 
-main {
-    padding: 16px;
-    max-width: 700px;
-    margin: auto
-}
+  <div class="row">
+    <button id="startBtn">Avvia scanner</button>
+    <button id="stopBtn" class="secondary" disabled>Ferma</button>
+    <button id="copyBtn" class="secondary" disabled>Copia risultato</button>
+  </div>
 
-.card {
-    background: #fff;
-    padding: 16px;
-    border-radius: 16px;
-    box-shadow: 0 1px 8px rgba(0,0,0,.05)
-}
+  <div class="box">
+    <div class="label">Risultato QR</div>
+    <div id="result">—</div>
+    <div class="hint">
+      Nota: la camera funziona su HTTPS (GitHub Pages) o localhost.
+    </div>
+  </div>
 
-button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border: 0;
-    border-radius: 12px;
-    font-size: 16px;
-    cursor: pointer
-}
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+  <script>
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn  = document.getElementById("stopBtn");
+    const copyBtn  = document.getElementById("copyBtn");
+    const resultEl = document.getElementById("result");
 
-.pill {
-    display: inline-block;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #eee;
-    font-size: 12px
-}
+    let html5QrCode = null;
+    let lastText = "";
 
-#reader {
-    width: 100%;
-    margin-top: 12px
-}
+    function setResult(text) {
+      lastText = text || "";
+      resultEl.textContent = text || "—";
+      copyBtn.disabled = !lastText;
+    }
 
-</style >
-</head >
-<body >
+    function isSecureOk() {
+      const isLocalhost =
+        location.hostname === "localhost" ||
+        location.hostname === "127.0.0.1" ||
+        location.hostname === "[::1]";
+      const isHttps = location.protocol === "https:";
+      return isHttps || isLocalhost;
+    }
 
-<header > <b > Scanner Presenze</b > </header >
+    async function startScanner() {
+      try {
+        if (!isSecureOk()) {
+          throw new Error("Apri la pagina su HTTPS (GitHub Pages) oppure su localhost.");
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Browser non compatibile con la fotocamera (prova Chrome/Safari aggiornato).");
+        }
 
-<main >
-<div class="card" >
-<button id="start" > ▶️ Avvia Scanner</button >
-<button id="stop" disabled > ⏹️ Stop</button >
+        // Prompt permessi camera
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        stream.getTracks().forEach(t => t.stop());
 
-<div id="reader" > </div >
+        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
-<p > Ultimo studente: <span id="last" class="pill" > —</span > </p >
-<p id="msg" > </p >
-</div >
-</main >
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
 
-<script >
-const SCRIPT_URL = "PASTE_YOUR_SCRIPT_URL_HERE";
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+          throw new Error("Nessuna fotocamera trovata (controlla i permessi del browser).");
+        }
 
-let qr = null;
-const lastEl = document.getElementById("last");
-const msgEl = document.getElementById("msg");
+        // Preferisci camera posteriore se riconoscibile, altrimenti la prima
+        let chosenId = cameras[0].id;
+        const backCam = cameras.find(c => /back|rear|environment/i.test(c.label));
+        if (backCam) chosenId = backCam.id;
 
-function cleanName(raw) {
-    return (raw||"").toString().replace(/\s+/g," ").trim().toUpperCase();
-}
+        await html5QrCode.start(
+          { deviceId: { exact: chosenId } },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => setResult(decodedText),
+          () => {}
+        );
 
-async function sendPresence(name) {
-    try
+      } catch (e) {
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        setResult("");
+        alert("Errore avvio camera/scanner: " + (e?.message || e));
+      }
+    }
 
-{
-    const res = await fetch(SCRIPT_URL,{
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({studente:name})
+    async function stopScanner() {
+      try {
+        if (html5QrCode && html5QrCode.isScanning) {
+          await html5QrCode.stop();
+          await html5QrCode.clear();
+        }
+      } finally {
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    }
+
+    startBtn.addEventListener("click", startScanner);
+    stopBtn.addEventListener("click", stopScanner);
+
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(lastText);
+        alert("Copiato negli appunti!");
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = lastText;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        alert("Copiato!");
+      }
     });
-    const json = await res.json();
-    if(json.ok)
-
-{
-    msgEl .innerHTML="✅ Presenza salvata";
-}
-
-else {
-    msgEl .innerHTML="❌ Errore";
-}
-
-}
-
-catch(e) {
-    msgEl .innerHTML="❌ Errore rete";
-}
-
-}
-
-document.getElementById("start").onclick = async ()= > {
-    qr = new Html5Qrcode("reader");
-    await qr.start( { facingMode: "environment" }, { fps:10, qrbox:250 }, async (decodedText)=>{
-      const name = cleanName(decodedText);
-      if(!name) return;
-
-      lastEl.textContent=name;
-
-      await qr.pause(true);
-      await sendPresence(name);
-
-      setTimeout(()=>qr.resume(),800);
-    } );
-    document .getElementById("start").disabled=true;
-    document .getElementById("stop").disabled=false;
-}
-
-;
-
-document.getElementById("stop").onclick = async ()= > {
-    if(qr)
-
-{
-    await qr.stop();
-    await qr.clear();
-}
-
-document.getElementById("start").disabled=false;
-document.getElementById("stop").disabled=true;
-}
-;
-</script >
-
-</body >
-</html >
+  </script>
+</body>
+</html>
