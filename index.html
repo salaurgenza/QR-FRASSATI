@@ -42,7 +42,9 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+  <!-- ✅ Libreria locale (NON CDN) -->
+  <script src="./html5-qrcode.min.js"></script>
+
   <script>
     const startBtn = document.getElementById("startBtn");
     const stopBtn  = document.getElementById("stopBtn");
@@ -69,9 +71,17 @@
 
     async function startScanner() {
       try {
+        // 1) HTTPS / localhost
         if (!isSecureOk()) {
           throw new Error("Apri la pagina su HTTPS (GitHub Pages) oppure su localhost.");
         }
+
+        // 2) Libreria caricata?
+        if (typeof Html5Qrcode === "undefined") {
+          throw new Error("Libreria QR non caricata: controlla che html5-qrcode.min.js sia nello stesso repo/cartella dell'HTML.");
+        }
+
+        // 3) Browser compatibile?
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error("Browser non compatibile con la fotocamera (prova Chrome/Safari aggiornato).");
         }
