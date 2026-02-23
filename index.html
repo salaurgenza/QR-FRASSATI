@@ -11,7 +11,7 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
     button {
       padding: 10px 12px; border: 0; border-radius: 10px; cursor: pointer;
-      background: #111; color: #fff; font-weight: 600;
+      background: #111; color: #fff; font-weight: 700;
     }
     button.secondary { background: #e9e9e9; color: #111; }
     .box {
@@ -24,7 +24,7 @@
   </style>
 </head>
 <body>
-  <h1>📷 Scanner QR Code (GitHub Pages)</h1>
+  <h1>📷 Scanner QR Code</h1>
 
   <div id="reader"></div>
 
@@ -35,15 +35,18 @@
   </div>
 
   <div class="box">
-    <div class="label">Risultato QR</div>
+    <div class="label">Contenuto QR (decodedText)</div>
     <div id="result">—</div>
     <div class="hint">
-      Nota: la camera funziona su HTTPS (GitHub Pages) o localhost.
+      Nota: la camera funziona su HTTPS o localhost. Se sei su iPhone: apri in Safari.
     </div>
   </div>
 
-  <!-- ✅ Libreria locale (NON CDN) -->
-  <script src="./html5-qrcode.min.js"></script>
+  <!-- ✅ OPZIONE 1 (CDN) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+
+  <!-- ✅ OPZIONE 2 (LOCALE) — se la CDN è bloccata, usa questa e commenta quella sopra -->
+  <!-- <script src="./html5-qrcode.min.js"></script> -->
 
   <script>
     const startBtn = document.getElementById("startBtn");
@@ -71,45 +74,49 @@
 
     async function startScanner() {
       try {
-        // 1) HTTPS / localhost
+        // 1) Contesto sicuro
         if (!isSecureOk()) {
-          throw new Error("Apri la pagina su HTTPS (GitHub Pages) oppure su localhost.");
+          throw new Error("Apri la pagina su HTTPS oppure su localhost (non file://).");
         }
 
-        // 2) Libreria caricata?
+        // 2) Libreria caricata
         if (typeof Html5Qrcode === "undefined") {
-          throw new Error("Libreria QR non caricata: controlla che html5-qrcode.min.js sia nello stesso repo/cartella dell'HTML.");
+          throw new Error("Libreria non caricata: Html5Qrcode non definito. (CDN bloccata? usa il file locale)");
         }
 
-        // 3) Browser compatibile?
-        if (!navigator.mediaDevices?.getUserMedia) {
-          throw new Error("Browser non compatibile con la fotocamera (prova Chrome/Safari aggiornato).");
-        }
-
-        // Prompt permessi camera
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        stream.getTracks().forEach(t => t.stop());
-
+        // 3) Inizializza scanner
         if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
         startBtn.disabled = true;
         stopBtn.disabled = false;
 
+        // 4) Seleziona camera (posteriore se possibile)
         const cameras = await Html5Qrcode.getCameras();
         if (!cameras || cameras.length === 0) {
-          throw new Error("Nessuna fotocamera trovata (controlla i permessi del browser).");
+          throw new Error("Nessuna fotocamera trovata o permesso negato.");
         }
 
-        // Preferisci camera posteriore se riconoscibile, altrimenti la prima
         let chosenId = cameras[0].id;
         const backCam = cameras.find(c => /back|rear|environment/i.test(c.label));
         if (backCam) chosenId = backCam.id;
 
+        // 5) Avvia: MOSTRA IL TESTO DECODIFICATO (decodedText)
         await html5QrCode.start(
           { deviceId: { exact: chosenId } },
           { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => setResult(decodedText),
-          () => {}
+          (decodedText, decodedResult) => {
+            // ✅ Qui c'è il contenuto REALE del QR:
+            console.log("QR decodedText:", decodedText);
+            console.log("QR decodedResult:", decodedResult);
+
+            setResult(decodedText);
+
+            // Se vuoi fermare dopo 1 lettura, sblocca:
+            // stopScanner();
+          },
+          (err) => {
+            // errori di scanning "normali" (non bloccare)
+          }
         );
 
       } catch (e) {
