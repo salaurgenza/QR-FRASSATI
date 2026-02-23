@@ -1,0 +1,148 @@
+﻿<!doctype html >
+<html lang="it" >
+<head >
+<meta charset="utf-8" >
+<meta name="viewport" content="width=device-width, initial-scale=1" >
+<title > Presenze QR</title >
+<script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js" > </script >
+<style >
+body {
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+    margin: 0;
+    background: #f7f7f7
+}
+
+header {
+    background: #fff;
+    padding: 16px;
+    border-bottom: 1px solid #eee
+}
+
+main {
+    padding: 16px;
+    max-width: 700px;
+    margin: auto
+}
+
+.card {
+    background: #fff;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 1px 8px rgba(0,0,0,.05)
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: 0;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer
+}
+
+.pill {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eee;
+    font-size: 12px
+}
+
+#reader {
+    width: 100%;
+    margin-top: 12px
+}
+
+</style >
+</head >
+<body >
+
+<header > <b > Scanner Presenze</b > </header >
+
+<main >
+<div class="card" >
+<button id="start" > ▶️ Avvia Scanner</button >
+<button id="stop" disabled > ⏹️ Stop</button >
+
+<div id="reader" > </div >
+
+<p > Ultimo studente: <span id="last" class="pill" > —</span > </p >
+<p id="msg" > </p >
+</div >
+</main >
+
+<script >
+const SCRIPT_URL = "PASTE_YOUR_SCRIPT_URL_HERE";
+
+let qr = null;
+const lastEl = document.getElementById("last");
+const msgEl = document.getElementById("msg");
+
+function cleanName(raw) {
+    return (raw||"").toString().replace(/\s+/g," ").trim().toUpperCase();
+}
+
+async function sendPresence(name) {
+    try
+
+{
+    const res = await fetch(SCRIPT_URL,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({studente:name})
+    });
+    const json = await res.json();
+    if(json.ok)
+
+{
+    msgEl .innerHTML="✅ Presenza salvata";
+}
+
+else {
+    msgEl .innerHTML="❌ Errore";
+}
+
+}
+
+catch(e) {
+    msgEl .innerHTML="❌ Errore rete";
+}
+
+}
+
+document.getElementById("start").onclick = async ()= > {
+    qr = new Html5Qrcode("reader");
+    await qr.start( { facingMode: "environment" }, { fps:10, qrbox:250 }, async (decodedText)=>{
+      const name = cleanName(decodedText);
+      if(!name) return;
+
+      lastEl.textContent=name;
+
+      await qr.pause(true);
+      await sendPresence(name);
+
+      setTimeout(()=>qr.resume(),800);
+    } );
+    document .getElementById("start").disabled=true;
+    document .getElementById("stop").disabled=false;
+}
+
+;
+
+document.getElementById("stop").onclick = async ()= > {
+    if(qr)
+
+{
+    await qr.stop();
+    await qr.clear();
+}
+
+document.getElementById("start").disabled=false;
+document.getElementById("stop").disabled=true;
+}
+;
+</script >
+
+</body >
+</html >
