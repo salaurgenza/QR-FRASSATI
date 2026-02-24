@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-<title>Scanner Presenze Frassati</title>
+<title>Registro Presenze Frassati</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <style>
   body { font-family: -apple-system, system-ui, sans-serif; margin: 16px; background:#f6f7fb; color: #111; }
   .card { background:#fff; border-radius: 14px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,.05); max-width: 600px; margin: auto; }
   .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
-  button { padding: 12px 16px; border: 0; border-radius: 10px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+  button { padding: 12px 16px; border: 0; border-radius: 10px; font-weight: bold; cursor: pointer; }
   .btn-start { background: #007aff; color: #fff; flex: 1; }
   .btn-stop { background: #8e8e93; color: #fff; }
   .btn-export { background: #34c759; color: #fff; }
   .btn-danger { background: #ff3b30; color: #fff; }
   #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 10px; }
-  .result-box { margin: 15px 0; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 10px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 10px; overflow: hidden; }
+  .status-box { margin: 15px 0; padding: 12px; background: #f0f0f5; border-radius: 10px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
   th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
   th { background: #f2f2f2; text-transform: uppercase; font-size: 11px; color: #666; }
-  .name-text { font-weight: bold; color: #007aff; }
-  .link-text { font-size: 10px; color: #999; display: block; }
+  .name-row { font-weight: bold; color: #007aff; display: block; }
+  .sub-text { font-size: 10px; color: #999; }
 </style>
 </head>
 <body>
@@ -35,11 +35,8 @@
 
   <div id="reader"></div>
 
-  <div class="result-box">
-    <strong>Stato:</strong> <span id="status">Pronto</span><br>
-    <div id="lastReadContainer" style="margin-top:8px; display:none;">
-        <strong>Ultimo Letto:</strong> <span id="lastReadName" class="name-text"></span>
-    </div>
+  <div class="status-box">
+    <strong>Stato:</strong> <span id="status">Pronto</span>
   </div>
 
   <div class="btn-group">
@@ -60,7 +57,8 @@
 </div>
 
 <script>
-  const STORAGE_KEY = "PRESENZE_IDENTIFICATE_V1";
+  // Salvataggio dati locale
+  const STORAGE_KEY = "PRESENZE_FRASSATI_V4";
   let presenze = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   let html5QrCode = null;
 
@@ -68,20 +66,16 @@
   const stopBtn = document.getElementById('stopBtn');
   const statusEl = document.getElementById('status');
   const tbody = document.getElementById('tbody');
-  const lastReadName = document.getElementById('lastReadName');
-  const lastReadContainer = document.getElementById('lastReadContainer');
 
+  // Rendering della tabella
   function render() {
-    tbody.innerHTML = "";
-    if (presenze.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:#999;'>Nessuna presenza registrata</td></tr>";
-    }
+    tbody.innerHTML = presenze.length ? "" : "<tr><td colspan='3' style='text-align:center; color:#999;'>Nessun dato</td></tr>";
     presenze.forEach((p, i) => {
       const row = `<tr>
         <td>${p.time}</td>
         <td>
-            <span class="name-text">${p.content}</span>
-            <span class="link-text">${p.raw.substring(0, 30)}...</span>
+            <span class="name-row">${p.name}</span>
+            <span class="sub-text">${p.raw.substring(0, 35)}...</span>
         </td>
         <td><button onclick="deleteRow(${i})" style="background:none; border:none; cursor:pointer;">❌</button></td>
       </tr>`;
@@ -90,78 +84,83 @@
   }
 
   window.deleteRow = (i) => {
-    if(confirm("Eliminare questa riga?")) {
+    if(confirm("Eliminare riga?")) {
         presenze.splice(i, 1);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(presenze));
         render();
     }
   };
 
-  async function fetchNameFromUrl(url) {
+  // Funzione per estrarre il nome dal link tramite Proxy
+  async function extractName(url) {
     try {
-      // Proxy per bypassare CORS (funziona solo se caricato su web)
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const response = await fetch(proxyUrl);
-      const data = await response.json();
+      // AllOrigins bypassa i blocchi CORS
+      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxy);
+      const data = await res.json();
+      
       const parser = new DOMParser();
       const doc = parser.parseFromString(data.contents, 'text/html');
       
-      // Cerchiamo il nome nell'H1 o nel Titolo della pagina qrly
-      const extracted = doc.querySelector('h1')?.innerText || doc.querySelector('title')?.innerText;
-      if (extracted && !extracted.includes("QR Code")) {
-          return extracted.trim();
+      // Cerca il nome nel titolo o nell'H1 della pagina
+      const name = doc.querySelector('h1')?.innerText || doc.querySelector('title')?.innerText;
+      
+      if (name && !name.toLowerCase().includes("qr code")) {
+          return name.trim();
       }
-      return "Utente Sconosciuto";
+      return "Link rilevato (Nome non trovato)";
     } catch (e) {
       return "Errore connessione";
     }
   }
 
-  async function processResult(decodedText) {
+  async function onScanSuccess(decodedText) {
     const now = new Date();
     const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
 
-    statusEl.textContent = "QR Rilevato! Identificazione...";
+    statusEl.textContent = "QR Letto! Estrazione nome...";
     if (navigator.vibrate) navigator.vibrate(100);
+    
+    // Fermiamo lo scanner per processare il dato
     stopScanner();
 
-    let name = decodedText;
+    let identifiedName = decodedText;
+    
+    // Se il QR contiene un link (come qrly.org), proviamo a interpretarlo
     if (decodedText.startsWith('http')) {
-        name = await fetchNameFromUrl(decodedText);
+        identifiedName = await extractName(decodedText);
     }
 
-    presenze.unshift({ time: timeStr, content: name, raw: decodedText });
+    presenze.unshift({ time: timeStr, name: identifiedName, raw: decodedText });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(presenze));
     
-    lastReadContainer.style.display = "block";
-    lastReadName.textContent = name;
-    statusEl.textContent = "Registrato con successo.";
+    statusEl.textContent = "Registrato: " + identifiedName;
     render();
   }
 
   function startScanner() {
     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-    statusEl.textContent = "Accesso alla camera...";
+    statusEl.textContent = "Avvio camera...";
     
+    // facingMode "environment" evita l'OverconstrainedError su iPhone
     html5QrCode.start(
       { facingMode: "environment" }, 
       { fps: 15, qrbox: { width: 250, height: 250 } }, 
-      processResult
+      onScanSuccess
     )
     .then(() => {
-      statusEl.textContent = "Scanner Attivo. Inquadra il QR.";
+      statusEl.textContent = "Scanner attivo. Inquadra il QR.";
       startBtn.disabled = true;
     })
     .catch(err => {
       statusEl.textContent = "Errore: " + err;
-      alert("Permesso camera negato o errore Overconstrained.");
     });
   }
 
   function stopScanner() {
     if (html5QrCode && html5QrCode.isScanning) {
       html5QrCode.stop().then(() => {
-        statusEl.textContent = "Scanner pronto.";
+        statusEl.textContent = "Scanner fermo.";
         startBtn.disabled = false;
       });
     }
@@ -170,17 +169,19 @@
   startBtn.onclick = startScanner;
   stopBtn.onclick = stopScanner;
 
+  // Esportazione CSV pulita con i Nomi Identificati
   document.getElementById('exportBtn').onclick = () => {
-    let csv = "\uFEFFOra;Nome;Link Originale\n" + presenze.map(p => `${p.time};${p.content};${p.raw}`).join("\n");
+    let csv = "\uFEFFOra;Nome Identificato;Link Originale\n" + 
+              presenze.map(p => `${p.time};${p.name};${p.raw}`).join("\n");
     let blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     let a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'registro_presenze.csv';
+    a.download = 'presenze_identificate.csv';
     a.click();
   };
 
   document.getElementById('resetBtn').onclick = () => {
-    if(confirm("Sei sicuro di voler cancellare tutta la lista?")) {
+    if(confirm("Cancellare tutto?")) {
         presenze = [];
         localStorage.removeItem(STORAGE_KEY);
         render();
