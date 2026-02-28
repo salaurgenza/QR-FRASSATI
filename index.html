@@ -1,194 +1,311 @@
 <!doctype html>
 <html lang="it">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-<title>Registro Presenze Frassati</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-<style>
-  body { font-family: -apple-system, system-ui, sans-serif; margin: 16px; background:#f6f7fb; color: #111; }
-  .card { background:#fff; border-radius: 14px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,.05); max-width: 600px; margin: auto; }
-  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
-  button { padding: 12px 16px; border: 0; border-radius: 10px; font-weight: bold; cursor: pointer; }
-  .btn-start { background: #007aff; color: #fff; flex: 1; }
-  .btn-stop { background: #8e8e93; color: #fff; }
-  .btn-export { background: #34c759; color: #fff; }
-  .btn-danger { background: #ff3b30; color: #fff; }
-  #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 10px; }
-  .status-box { margin: 15px 0; padding: 12px; background: #f0f0f5; border-radius: 10px; font-size: 14px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-  th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
-  th { background: #f2f2f2; text-transform: uppercase; font-size: 11px; color: #666; }
-  .name-row { font-weight: bold; color: #007aff; display: block; }
-  .sub-text { font-size: 10px; color: #999; }
-</style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <title>Registro Presenze Frassati</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            margin: 16px;
+            background: #f6f7fb;
+            color: #111;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px 16px;
+            border: 0;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-start {
+            background: #007aff;
+            color: #fff;
+            flex: 1;
+        }
+
+        .btn-stop {
+            background: #8e8e93;
+            color: #fff;
+        }
+
+        .btn-export {
+            background: #34c759;
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: #ff3b30;
+            color: #fff;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            margin-bottom: 10px;
+        }
+
+        .status-box {
+            margin: 15px 0;
+            padding: 12px;
+            background: #f0f0f5;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f2f2f2;
+            text-transform: uppercase;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .name-row {
+            font-weight: bold;
+            color: #007aff;
+            display: block;
+        }
+
+        .sub-text {
+            font-size: 10px;
+            color: #999;
+        }
+    </style>
 </head>
 <body>
 
-<div class="card">
-  <h2 style="margin-top:0;">📷 Registro Presenze</h2>
-  
-  <div class="btn-group">
-    <button class="btn-start" id="startBtn">AVVIA SCANNER</button>
-    <button class="btn-stop" id="stopBtn">FERMA</button>
-  </div>
+    <div class="card">
+        <h2 style="margin-top:0;">📷 Registro Presenze</h2>
 
-  <div id="reader"></div>
+        <div class="btn-group">
+            <button class="btn-start" id="startBtn">AVVIA SCANNER</button>
+            <button class="btn-stop" id="stopBtn">FERMA</button>
+        </div>
 
-  <div class="status-box">
-    <strong>Stato:</strong> <span id="status">Pronto</span>
-  </div>
+        <div id="reader"></div>
 
-  <div class="btn-group">
-    <button class="btn-export" id="exportBtn">ESPORTA CSV</button>
-    <button class="btn-danger" id="resetBtn">RESET LISTA</button>
-  </div>
+        <div class="status-box">
+            <strong>Stato:</strong> <span id="status">Pronto</span>
+        </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th style="width:70px;">Ora</th>
-        <th>Nome Identificato</th>
-        <th style="width:40px;"></th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
-</div>
+        <div class="btn-group">
+            <button class="btn-export" id="exportBtn">ESPORTA CSV</button>
+            <button class="btn-danger" id="resetBtn">RESET LISTA</button>
+        </div>
 
-<script>
-  // Salvataggio dati locale
-  const STORAGE_KEY = "PRESENZE_FRASSATI_V4";
-  let presenze = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  let html5QrCode = null;
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:90px;">Data</th>
+                    <th style="width:70px;">Ora</th>
+                    <th>Nome Identificato</th>
+                    <th style="width:40px;"></th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+    </div>
 
-  const startBtn = document.getElementById('startBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const statusEl = document.getElementById('status');
-  const tbody = document.getElementById('tbody');
+    <script>const STORAGE_KEY = "PRESENZE_FRASSATI_V5";
+        let presenze = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        let html5QrCode = null;
 
-  // Rendering della tabella
-  function render() {
-    tbody.innerHTML = presenze.length ? "" : "<tr><td colspan='3' style='text-align:center; color:#999;'>Nessun dato</td></tr>";
-    presenze.forEach((p, i) => {
-      const row = `<tr>
-        <td>${p.time}</td>
-        <td>
-            <span class="name-row">${p.name}</span>
-            <span class="sub-text">${p.raw.substring(0, 35)}...</span>
-        </td>
-        <td><button onclick="deleteRow(${i})" style="background:none; border:none; cursor:pointer;">❌</button></td>
-      </tr>`;
-      tbody.insertAdjacentHTML('beforeend', row);
-    });
-  }
+        // ⚠️ Inserisci qui il tuo URL Google Apps Script
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfZvh6oddmrlnI5Z63CXUsPbrdcEx9_lsNrHH3yfMZOl-1k_h4pAw6iu2tBoMlJLGc/exec";
 
-  window.deleteRow = (i) => {
-    if(confirm("Eliminare riga?")) {
-        presenze.splice(i, 1);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(presenze));
-        render();
-    }
-  };
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusEl = document.getElementById('status');
+        const tbody = document.getElementById('tbody');
 
-  // Funzione per estrarre il nome dal link tramite Proxy
-  async function extractName(url) {
-    try {
-      // AllOrigins bypassa i blocchi CORS
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxy);
-      const data = await res.json();
-      
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(data.contents, 'text/html');
-      
-      // Cerca il nome nel titolo o nell'H1 della pagina
-      const name = doc.querySelector('h1')?.innerText || doc.querySelector('title')?.innerText;
-      
-      if (name && !name.toLowerCase().includes("qr code")) {
-          return name.trim();
-      }
-      return "Link rilevato (Nome non trovato)";
-    } catch (e) {
-      return "Errore connessione";
-    }
-  }
+        // Mostra la tabella
+        function render() {
+            tbody.innerHTML = presenze.length ? "" :
+                "<tr><td colspan='4' style='text-align:center; color:#999;'>Nessun dato</td></tr>";
 
-  async function onScanSuccess(decodedText) {
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            presenze.forEach((p, i) => {
+                const row = `<tr>
+              <td>${p.date}</td>
+              <td>${p.time}</td>
+              <td>
+                <span class="name-row">${p.name}</span>
+                <span class="sub-text">${p.raw.substring(0, 35)}...</span>
+              </td>
+              <td>
+                <button onclick="deleteRow(${i})" style="background:none;border:none;cursor:pointer;">❌</button>
+              </td>
+            </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
 
-    statusEl.textContent = "QR Letto! Estrazione nome...";
-    if (navigator.vibrate) navigator.vibrate(100);
-    
-    // Fermiamo lo scanner per processare il dato
-    stopScanner();
+        window.deleteRow = (i) => {
+            if (confirm("Eliminare riga?")) {
+                presenze.splice(i, 1);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(presenze));
+                render();
+            }
+        };
 
-    let identifiedName = decodedText;
-    
-    // Se il QR contiene un link (come qrly.org), proviamo a interpretarlo
-    if (decodedText.startsWith('http')) {
-        identifiedName = await extractName(decodedText);
-    }
+        // Se il QR contiene un link, estrai il titolo della pagina
+        async function extractName(url) {
+            try {
+                const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                const res = await fetch(proxy);
+                const data = await res.json();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
+                const name = doc.querySelector('h1')?.innerText || doc.querySelector('title')?.innerText;
+                return name ? name.trim() : "Nome non trovato";
+            } catch {
+                return "Errore connessione";
+            }
+        }
 
-    presenze.unshift({ time: timeStr, name: identifiedName, raw: decodedText });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(presenze));
-    
-    statusEl.textContent = "Registrato: " + identifiedName;
-    render();
-  }
+        // 🔥 Funzione per inviare dati al Google Sheet
+        async function saveToGoogleSheet(data) {
+            try {
+                // In modalità no-cors non possiamo leggere la risposta, ma i dati vengono inviati
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+                console.log("Dati inviati a Google Sheet:", data);
+            } catch (err) {
+                console.error("Errore invio a Google Sheet", err);
+            }
+        }
 
-  function startScanner() {
-    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-    statusEl.textContent = "Avvio camera...";
-    
-    // facingMode "environment" evita l'OverconstrainedError su iPhone
-    html5QrCode.start(
-      { facingMode: "environment" }, 
-      { fps: 15, qrbox: { width: 250, height: 250 } }, 
-      onScanSuccess
-    )
-    .then(() => {
-      statusEl.textContent = "Scanner attivo. Inquadra il QR.";
-      startBtn.disabled = true;
-    })
-    .catch(err => {
-      statusEl.textContent = "Errore: " + err;
-    });
-  }
+        // Quando il QR viene letto
+        async function onScanSuccess(decodedText) {
+            const now = new Date();
 
-  function stopScanner() {
-    if (html5QrCode && html5QrCode.isScanning) {
-      html5QrCode.stop().then(() => {
-        statusEl.textContent = "Scanner fermo.";
-        startBtn.disabled = false;
-      });
-    }
-  }
+            const dateStr =
+                now.getDate().toString().padStart(2, '0') + "/" +
+                (now.getMonth() + 1).toString().padStart(2, '0') + "/" +
+                now.getFullYear();
 
-  startBtn.onclick = startScanner;
-  stopBtn.onclick = stopScanner;
+            const timeStr =
+                now.getHours().toString().padStart(2, '0') + ":" +
+                now.getMinutes().toString().padStart(2, '0');
 
-  // Esportazione CSV pulita con i Nomi Identificati
-  document.getElementById('exportBtn').onclick = () => {
-    let csv = "\uFEFFOra;Nome Identificato;Link Originale\n" + 
-              presenze.map(p => `${p.time};${p.name};${p.raw}`).join("\n");
-    let blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    let a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'presenze_identificate.csv';
-    a.click();
-  };
+            statusEl.textContent = "QR Letto!";
+            if (navigator.vibrate) navigator.vibrate(100);
 
-  document.getElementById('resetBtn').onclick = () => {
-    if(confirm("Cancellare tutto?")) {
-        presenze = [];
-        localStorage.removeItem(STORAGE_KEY);
-        render();
-    }
-  };
+            stopScanner();
 
-  render();
-</script>
+            let identifiedName = decodedText;
+
+            if (decodedText.startsWith('http')) {
+                identifiedName = await extractName(decodedText);
+            }
+
+            const record = {
+                date: dateStr,
+                time: timeStr,
+                name: identifiedName,
+                raw: decodedText
+            };
+
+            // Salva localmente
+            presenze.unshift(record);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(presenze));
+            render();
+
+            // Salva su Google Sheet
+            saveToGoogleSheet(record);
+
+            statusEl.textContent = "Registrato: " + identifiedName;
+        }
+
+        // Avvia scanner QR
+        function startScanner() {
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 15, qrbox: { width: 250, height: 250 } },
+                onScanSuccess
+            ).then(() => {
+                statusEl.textContent = "Scanner attivo";
+                startBtn.disabled = true;
+            }).catch(err => {
+                statusEl.textContent = "Errore: " + err;
+            });
+        }
+
+        // Ferma scanner
+        function stopScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    startBtn.disabled = false;
+                    statusEl.textContent = "Scanner fermo";
+                });
+            }
+        }
+
+        startBtn.onclick = startScanner;
+        stopBtn.onclick = stopScanner;
+
+        // Export CSV
+        document.getElementById('exportBtn').onclick = () => {
+            let csv = "\uFEFFData;Ora;Nome Identificato;Link Originale\n" +
+                presenze.map(p => `${p.date};${p.time};${p.name};${p.raw}`).join("\n");
+
+            let blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'presenze_identificate.csv';
+            a.click();
+        };
+
+        // Reset presenze
+        document.getElementById('resetBtn').onclick = () => {
+            if (confirm("Cancellare tutto?")) {
+                presenze = [];
+                localStorage.removeItem(STORAGE_KEY);
+                render();
+            }
+        };
+
+        render();</script>
 </body>
 </html>
